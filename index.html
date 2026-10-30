@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#17212b">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>StarChat</title>
+<style>
+:root{--bg:#0e1621;--panel:#17212b;--line:#0b121a;--text:#f5f5f5;--muted:#7f91a4;--accent:#2b8cd6;--mine:#2b5278;--their:#182533;--star:#ffc107;--danger:#e5534b}
+@media (prefers-color-scheme:light){:root[data-auto]{}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+button,input{font:inherit;color:inherit}
+.view{position:fixed;inset:0;display:none;flex-direction:column;background:var(--bg);padding-top:env(safe-area-inset-top)}
+.view.on{display:flex}
+header{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--panel);border-bottom:1px solid var(--line);min-height:56px}
+header h1{font-size:18px;margin:0;flex:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.icon-btn{background:none;border:0;padding:8px;border-radius:50%;font-size:20px;cursor:pointer;line-height:1}
+.icon-btn:active{background:#ffffff14}
+.stars{background:#ffc10722;color:var(--star);padding:4px 10px;border-radius:14px;font-size:14px;font-weight:600;white-space:nowrap}
+/* auth */
+#auth{justify-content:center;align-items:center;padding:24px}
+.card{width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px}
+.logo{font-size:56px;text-align:center}
+.card h2{text-align:center;margin:0 0 4px}
+input{background:var(--panel);border:1px solid #223244;border-radius:12px;padding:13px 14px;width:100%;outline:none}
+input:focus{border-color:var(--accent)}
+.btn{background:var(--accent);border:0;border-radius:12px;padding:13px;font-weight:600;cursor:pointer}
+.btn:active{opacity:.8}
+.link{background:none;border:0;color:var(--accent);cursor:pointer;padding:6px}
+.err{color:var(--danger);text-align:center;min-height:20px;font-size:14px}
+/* list */
+.search{padding:8px 12px;background:var(--panel)}
+.search input{border-radius:20px;padding:10px 16px}
+.list{flex:1;overflow-y:auto}
+.row{display:flex;gap:12px;padding:10px 14px;cursor:pointer;align-items:center}
+.row:active{background:#ffffff0d}
+.ava{width:50px;height:50px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:700;font-size:20px;color:#fff}
+.row .mid{flex:1;min-width:0}
+.row .t{display:flex;justify-content:space-between;gap:8px}
+.row .n{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .time{color:var(--muted);font-size:12px;flex:none}
+.row .p{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
+.empty{color:var(--muted);text-align:center;padding:40px 20px}
+.badge{font-size:11px;background:var(--accent);border-radius:6px;padding:1px 5px;margin-left:6px;vertical-align:middle}
+/* chat */
+#msgs{flex:1;overflow-y:auto;padding:10px 10px 4px;display:flex;flex-direction:column;gap:4px;background:var(--bg)}
+.m{max-width:78%;padding:7px 11px;border-radius:14px;word-wrap:break-word;overflow-wrap:anywhere;white-space:pre-wrap}
+.m.in{background:var(--their);align-self:flex-start;border-bottom-left-radius:4px}
+.m.out{background:var(--mine);align-self:flex-end;border-bottom-right-radius:4px}
+.m small{display:block;text-align:right;color:#ffffff80;font-size:11px;margin-top:2px}
+.gift{background:#ffc10722;border:1px solid #ffc10755;color:var(--star);border-radius:10px;padding:6px 10px;margin-bottom:4px;font-weight:600;white-space:normal}
+.composer{display:flex;gap:8px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:var(--panel);align-items:center}
+.composer input{border-radius:22px;padding:11px 16px}
+.send{background:var(--accent);border:0;border-radius:50%;width:44px;height:44px;flex:none;font-size:18px;cursor:pointer}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#000c;padding:10px 16px;border-radius:12px;z-index:9;display:none;max-width:90%;text-align:center}
+.modal{position:fixed;inset:0;background:#0009;display:none;align-items:center;justify-content:center;z-index:8;padding:20px}
+.modal.on{display:flex}
+.modal .box{background:var(--panel);border-radius:16px;padding:18px;width:100%;max-width:340px;display:flex;flex-direction:column;gap:12px}
+.modal .row2{display:flex;gap:8px}.modal .row2 .btn{flex:1}.btn.gray{background:#2a3a4b}
+</style>
+</head>
+<body>
+
+<div id="auth" class="view">
+  <div class="card">
+    <div class="logo">⭐</div>
+    <h2 id="authTitle">StarChat</h2>
+    <input id="a_user" placeholder="Логин (латиница)" autocapitalize="off" autocomplete="username">
+    <input id="a_name" placeholder="Имя" style="display:none">
+    <input id="a_pass" type="password" placeholder="Пароль" autocomplete="current-password">
+    <div class="err" id="a_err"></div>
+    <button class="btn" id="a_go">Войти</button>
+    <button class="link" id="a_sw">Нет аккаунта? Зарегистрироваться</button>
+  </div>
+</div>
+
+<div id="chats" class="view">
+  <header>
+    <h1>StarChat</h1>
+    <span class="stars" id="bal">⭐ 0</span>
+    <button class="icon-btn" id="logout" title="Выйти">⏻</button>
+  </header>
+  <div class="search"><input id="q" placeholder="Найти человека по логину или имени" autocomplete="off"></div>
+  <div class="list" id="list"></div>
+</div>
+
+<div id="chat" class="view">
+  <header>
+    <button class="icon-btn" id="back">←</button>
+    <div class="ava" id="c_ava" style="width:38px;height:38px;font-size:16px"></div>
+    <h1 id="c_name"></h1>
+    <span class="stars" id="bal2">⭐ 0</span>
+  </header>
+  <div id="msgs"></div>
+  <form class="composer" id="form">
+    <button type="button" class="icon-btn" id="gift" title="Подарить звёзды">⭐</button>
+    <input id="text" placeholder="Сообщение" autocomplete="off">
+    <button class="send" aria-label="Отправить">➤</button>
+  </form>
+</div>
+
+<div class="modal" id="giftModal">
+  <div class="box">
+    <b>Подарить звёзды ⭐</b>
+    <input id="g_amount" type="number" min="1" placeholder="Сколько звёзд">
+    <div class="row2"><button class="btn gray" id="g_cancel">Отмена</button><button class="btn" id="g_ok">Подарить</button></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const S = { token: null, me: null, peer: null, ws: null, chats: [], lastId: 0 };
+try { S.token = localStorage.getItem('sc_token'); } catch {}
+
+const colors = ['#e17076','#7bc862','#e5ca77','#65aadd','#a695e7','#ee7aae','#6ec9cb','#faa774'];
+const color = (id) => colors[id % colors.length];
+const initial = (s) => (s || '?').trim().charAt(0).toUpperCase();
+const fmtTime = (ts) => { const d = new Date(ts); return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); };
+const fmtDay = (ts) => { const d = new Date(ts), n = new Date(); return d.toDateString() === n.toDateString() ? fmtTime(ts) : d.toLocaleDateString([], { day: '2-digit', month: '2-digit' }); };
+function toast(t) { const e = $('toast'); e.textContent = t; e.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => (e.style.display = 'none'), 2500); }
+function show(v) { document.querySelectorAll('.view').forEach((e) => e.classList.toggle('on', e.id === v)); }
+function setStars(n) { if (S.me) S.me.stars = n; $('bal').textContent = $('bal2').textContent = '⭐ ' + n.toLocaleString('ru'); }
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, { method: opts.body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json', ...(S.token ? { Authorization: 'Bearer ' + S.token } : {}) }, body: opts.body ? JSON.stringify(opts.body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401 || r.status === 403) { if (S.token && path !== '/api/login') { logout(true); } }
+  if (!r.ok) throw new Error(j.error || 'Ошибка ' + r.status);
+  return j;
+}
+
+// ----- auth -----
+let registering = false;
+function setMode(reg) {
+  registering = reg;
+  $('a_name').style.display = reg ? '' : 'none';
+  $('a_go').textContent = reg ? 'Создать аккаунт' : 'Войти';
+  $('a_sw').textContent = reg ? 'Уже есть аккаунт? Войти' : 'Нет аккаунта? Зарегистрироваться';
+  $('a_pass').autocomplete = reg ? 'new-password' : 'current-password';
+  $('a_err').textContent = '';
+}
+$('a_sw').onclick = () => setMode(!registering);
+$('a_go').onclick = async () => {
+  $('a_err').textContent = '';
+  try {
+    const body = { username: $('a_user').value, password: $('a_pass').value, name: $('a_name').value };
+    const j = await api(registering ? '/api/register' : '/api/login', { body });
+    S.token = j.token; try { localStorage.setItem('sc_token', j.token); } catch {}
+    S.me = j.user; boot();
+  } catch (e) { $('a_err').textContent = e.message; }
+};
+[$('a_user'), $('a_name'), $('a_pass')].forEach((i) => i.addEventListener('keydown', (e) => e.key === 'Enter' && $('a_go').click()));
+
+function logout(silent) {
+  if (!silent) api('/api/logout', { body: {} }).catch(() => {});
+  S.token = null; S.me = null; S.peer = null;
+  try { localStorage.removeItem('sc_token'); } catch {}
+  if (S.ws) { S.ws.close(); S.ws = null; }
+  show('auth');
+}
+$('logout').onclick = () => logout();
+
+// ----- websocket -----
+function connectWS() {
+  if (S.ws) S.ws.close();
+  const ws = new EventSource('/api/events?token=' + S.token);
+  S.ws = ws;
+  ws.onerror = () => { if (ws.readyState === 2 && S.token) setTimeout(() => S.token && S.ws === ws && connectWS(), 3000); };
+  ws.onmessage = (e) => {
+    const d = JSON.parse(e.data);
+    if (d.type === 'banned') return logout(true);
+    if (d.type === 'balance') setStars(d.stars);
+    if (d.type === 'message') {
+      setStars(d.stars);
+      if (S.peer && S.peer.id === d.from.id && $('chat').classList.contains('on')) addMsg(d.msg);
+      else toast((d.from.name || d.from.username) + ': ' + (d.msg.text || '⭐ ' + d.msg.stars));
+      loadChats();
+    }
+  };
+}
+
+// ----- chat list -----
+function renderRow(peer, sub, time, badge) {
+  const r = document.createElement('div'); r.className = 'row';
+  r.innerHTML = '<div class="ava"></div><div class="mid"><div class="t"><span class="n"></span><span class="time"></span></div><div class="p"></div></div>';
+  const a = r.querySelector('.ava'); a.style.background = color(peer.id); a.textContent = initial(peer.name);
+  const n = r.querySelector('.n'); n.textContent = peer.name;
+  if (peer.is_admin || peer.is_system) { const b = document.createElement('span'); b.className = 'badge'; b.textContent = peer.is_system ? 'система' : 'админ'; n.appendChild(b); }
+  r.querySelector('.time').textContent = time || '';
+  r.querySelector('.p').textContent = sub;
+  r.onclick = () => openChat(peer);
+  return r;
+}
+async function loadChats() {
+  try { S.chats = await api('/api/chats'); } catch { return; }
+  if ($('q').value.trim()) return;
+  const l = $('list'); l.innerHTML = '';
+  if (!S.chats.length) { l.innerHTML = '<div class="empty">Пока нет чатов.<br>Найди человека по логину вверху.</div>'; return; }
+  for (const c of S.chats) {
+    const t = (c.last.mine ? 'Вы: ' : '') + (c.last.stars ? '⭐ ' + c.last.stars + ' ' : '') + c.last.text;
+    l.appendChild(renderRow(c.peer, t, fmtDay(c.last.ts)));
+  }
+}
+let qt;
+$('q').oninput = () => {
+  clearTimeout(qt);
+  const v = $('q').value.trim();
+  if (!v) return loadChats();
+  qt = setTimeout(async () => {
+    try {
+      const users = await api('/api/users?q=' + encodeURIComponent(v));
+      const l = $('list'); l.innerHTML = '';
+      if (!users.length) l.innerHTML = '<div class="empty">Никого не найдено</div>';
+      users.forEach((u) => l.appendChild(renderRow(u, '@' + u.username)));
+    } catch (e) { toast(e.message); }
+  }, 250);
+};
+
+// ----- chat -----
+function addMsg(m) {
+  if (m.id <= S.lastId) return;
+  S.lastId = m.id;
+  const el = document.createElement('div'); el.className = 'm ' + (m.mine ? 'out' : 'in');
+  if (m.stars) { const g = document.createElement('div'); g.className = 'gift'; g.textContent = '⭐ ' + m.stars.toLocaleString('ru') + (m.mine ? ' отправлено' : ' получено'); el.appendChild(g); }
+  if (m.text) el.appendChild(document.createTextNode(m.text));
+  const s = document.createElement('small'); s.textContent = fmtTime(m.ts); el.appendChild(s);
+  const box = $('msgs'); const stick = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+  box.appendChild(el); if (stick || m.mine) box.scrollTop = box.scrollHeight;
+}
+async function openChat(peer) {
+  S.peer = peer; S.lastId = 0;
+  $('q').value = '';
+  $('c_name').textContent = peer.name;
+  const a = $('c_ava'); a.style.background = color(peer.id); a.textContent = initial(peer.name);
+  $('msgs').innerHTML = '';
+  const isSys = peer.is_system;
+  $('form').style.display = isSys ? 'none' : 'flex';
+  show('chat');
+  try { const j = await api('/api/messages/' + peer.id); j.messages.forEach(addMsg); $('msgs').scrollTop = $('msgs').scrollHeight; } catch (e) { toast(e.message); }
+  if (!isSys) $('text').focus();
+}
+$('back').onclick = () => { S.peer = null; show('chats'); loadChats(); };
+$('form').onsubmit = async (e) => {
+  e.preventDefault();
+  const text = $('text').value.trim(); if (!text) return;
+  $('text').value = '';
+  try { const j = await api('/api/messages', { body: { to: S.peer.id, text } }); addMsg(j.msg); } catch (er) { toast(er.message); $('text').value = text; }
+};
+$('gift').onclick = () => { $('g_amount').value = ''; $('giftModal').classList.add('on'); $('g_amount').focus(); };
+$('g_cancel').onclick = () => $('giftModal').classList.remove('on');
+$('g_ok').onclick = async () => {
+  const stars = Math.floor(Number($('g_amount').value));
+  if (!(stars > 0)) return toast('Укажи количество');
+  try { const j = await api('/api/messages', { body: { to: S.peer.id, text: '', stars } }); addMsg(j.msg); setStars(j.stars); $('giftModal').classList.remove('on'); } catch (er) { toast(er.message); }
+};
+
+// ----- boot -----
+async function boot() {
+  if (!S.token) return show('auth');
+  try { S.me = await api('/api/me'); } catch { return show('auth'); }
+  setStars(S.me.stars); show('chats'); loadChats(); connectWS();
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && S.token) { loadChats(); if (!S.ws || S.ws.readyState === 2) connectWS(); } });
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+boot();
+</script>
+</body>
+</html>

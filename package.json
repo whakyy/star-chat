@@ -1,0 +1,11 @@
+{
+  "name": "starchat",
+  "version": "1.0.0",
+  "description": "StarChat — свой мессенджер с админ-панелью и виртуальными звёздами",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": { "node": ">=22.13" },
+  "dependencies": {}
+}
