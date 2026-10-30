@@ -1,1 +1,43 @@
+name: Build APK
 
+on:
+  workflow_dispatch:
+    inputs:
+      server_url:
+        description: "Адрес сервера, например https://starchat.onrender.com"
+        required: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Создать Android-проект
+        env:
+          SERVER_URL: ${{ inputs.server_url }}
+        run: |
+          mkdir wrapper && cd wrapper
+          npm init -y
+          npm install @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7
+          mkdir www
+          echo '<!doctype html><meta charset="utf-8"><body style="background:#0e1621;color:#fff;text-align:center;padding-top:30vh">StarChat</body>' > www/index.html
+          node -e "require('fs').writeFileSync('capacitor.config.json', JSON.stringify({appId:'app.starchat.messenger',appName:'StarChat',webDir:'www',server:{url:process.env.SERVER_URL,cleartext:false},android:{backgroundColor:'#0e1621'}},null,2))"
+          npx cap add android
+          npx cap sync android
+
+      - name: Сборка APK
+        working-directory: wrapper/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: StarChat-apk
+          path: wrapper/android/app/build/outputs/apk/debug/app-debug.
