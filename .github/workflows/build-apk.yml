@@ -1,5 +1,6 @@
 name: Build APK
 
+# Запуск: вкладка Actions -> Build APK -> Run workflow -> вставь адрес сервера (https://...)
 on:
   workflow_dispatch:
     inputs:
@@ -28,9 +29,12 @@ jobs:
           echo '{"name":"wrapper","version":"1.0.0","private":true,"dependencies":{"@capacitor/core":"^7.0.0","@capacitor/cli":"^7.0.0","@capacitor/android":"^7.0.0"},"overrides":{"tslib":"2.8.1"}}' > package.json
           npm install --no-audit --no-fund || (sleep 20 && npm install --no-audit --no-fund)
           mkdir www
-          echo '<!doctype html><meta charset="utf-8"><body style="background:#0e1621;color:#fff;text-align:center;padding-top:30vh">StarChat</body>' > www/index.html
-          node -e "require('fs').writeFileSync('capacitor.config.json', JSON.stringify({appId:'app.starchat.messenger',appName:'StarChat',webDir:'www',server:{url:process.env.SERVER_URL,cleartext:false},android:{backgroundColor:'#0e1621'}},null,2))"
+          echo '<!doctype html><meta charset="utf-8"><body style="background:#14111f;color:#fff;text-align:center;padding-top:30vh">StarChat</body>' > www/index.html
+          node -e "require('fs').writeFileSync('capacitor.config.json', JSON.stringify({appId:'app.starchat.messenger',appName:'StarChat',webDir:'www',server:{url:process.env.SERVER_URL,cleartext:false},android:{backgroundColor:'#14111f'}},null,2))"
           npx cap add android
+          # разрешение на микрофон (голосовые сообщения)
+          sed -i 's#<application#<uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <application#' android/app/src/main/AndroidManifest.xml
+          grep -n "RECORD_AUDIO" android/app/src/main/AndroidManifest.xml
           npx cap sync android
 
       - name: Сборка APK
